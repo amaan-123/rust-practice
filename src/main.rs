@@ -76,3 +76,140 @@
 //     let name2 = &mut name;
 //     name2.push_str(" Pro");
 // }
+
+// // Another Mutable borrowing e.g., * (dereferencing) used
+// // Compiles
+// fn add_stock(quantity: &mut i32) {
+//     *quantity += 5;
+// }
+// fn main() {
+//     let mut available_quantity = 10;
+
+//     add_stock(&mut available_quantity);
+
+//     println!("Available: {}", available_quantity);
+// }
+
+// fn main() {
+//     let name = String::from("Keyboard");
+
+//     let name2 = name;
+
+//     // name is invalid
+//     // println!("{}", name);
+//     // name2 owns the String
+//     println!("{}", name2);
+// }
+
+// // One Rust surprise: Copy
+// // Compiles
+// // Simple value types
+// //     i32, bool, char, etc.
+// //          ↓
+// //        Copy
+
+// // Owned heap data
+// //     String, Vec<T>, etc.
+// //          ↓
+// //        Move
+// fn main() {
+//     let x = 10;
+//     let y = x;
+
+//     println!("x = {}", x);
+//     println!("y = {}", y);
+// }
+
+// // &String vs &str
+// // &str means: "I need to read some string data."
+// // It doesn't require the caller to specifically have a String
+
+// fn print_product_name(name: &str) {
+//     println!("Product: {}", name);
+// }
+// fn main() {
+//     let product_name = String::from("Mechanical Keyboard");
+
+//     print_product_name(&product_name);
+//     // &str can also work with a string literal:
+//     print_product_name("Literal");
+//     println!("Still available: {}", product_name);
+// }
+
+// fn read_product_name(product_name: &str) {
+//     println!("I have read product name as: {}", product_name)
+// }
+// fn increase_available_qty(available: &mut i32, increment: i32) {
+//     println!("Quantity available before: {}", available);
+//     *available += increment;
+//     println!("Quantity available after: {}", available);
+// }
+// fn main() {
+//     struct Product {
+//         name: String,
+//         available_quantity: i32,
+//     }
+//     let mut product = Product {
+//         name: String::from("Mechanical Keyboard"),
+//         available_quantity: 90,
+//     };
+//     read_product_name(&product.name);
+//     increase_available_qty(&mut product.available_quantity, 10);
+// }
+
+// Convert above code so that Product owns its behavior.
+// `impl` gives the type its methods
+
+// fn main() {
+//     struct Product {
+//         name: String,
+//         available_quantity: i32,
+//     }
+//     impl Product {
+//         // think of `self` as the current `Product` object
+//         fn read_product_name(&self) {
+//             //&self -> I want to inspect this Product.
+//             println!("I have read product name as: {}", self.name)
+//         }
+//         fn increase_available_qty(&mut self, increment: i32) {
+//             // &mut self -> I want to modify this Product.
+//             println!("Quantity available before: {}", self.available_quantity);
+//             self.available_quantity += increment;
+//             println!("Quantity available after: {}", self.available_quantity);
+//         }
+//     }
+
+//     let mut product = Product {
+//         name: String::from("Mechanical Keyboard"),
+//         available_quantity: 90,
+//     };
+//     product.read_product_name();
+//     product.increase_available_qty(10);
+// }
+
+// // Constructors and Self
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// impl Product {
+//     fn new(name: String, quantity: i32) -> Self {
+//         Self {
+//             name, // Because the parameter has exactly the same name as the struct field:
+//             available_quantity: quantity,
+//         }
+//     }
+//     fn read_product_name(&self) {
+//         println!("I have read product name as: {}", self.name)
+//     }
+//     fn increase_available_qty(&mut self, increment: i32) {
+//         println!("Quantity available before: {}", self.available_quantity);
+//         self.available_quantity += increment;
+//         println!("Quantity available after: {}", self.available_quantity);
+//     }
+// }
+// fn main() {
+//     let mut product = Product::new(String::from("Mechanical Keyboard"), 90);
+//     product.read_product_name();
+//     product.increase_available_qty(10);
+// }
