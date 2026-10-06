@@ -457,9 +457,106 @@ fn main() {
 
 ## Disambiguating with Loop Labels
 
+If you have `loops within loops`, `break` and `continue` apply to the `innermost` loop at that point. You can optionally specify a `loop label` on a loop that you can then use with break or continue to specify that those keywords apply to the `labeled` loop instead of the innermost loop. Loop labels must begin with a `single` quote. Here’s an example with two nested loops:
+
+```rust
+fn main() {
+    let mut count = 0;
+    'counting_up: loop {
+        println!("count = {count}");
+        let mut remaining = 10;
+
+        loop {
+            println!("remaining = {remaining}");
+            if remaining == 9 {
+                break;
+            }
+            if count == 2 {
+                break 'counting_up;
+            }
+            remaining -= 1;
+        }
+
+        count += 1;
+    }
+    println!("End count = {count}");
+}
+
+// Output:
+// count = 0
+// remaining = 10
+// remaining = 9
+// count = 1
+// remaining = 10
+// remaining = 9
+// count = 2
+// remaining = 10
+// End count = 2
+```
+
 ## Streamlining Conditional Loops with while
 
+A program will often need to evaluate a condition within a loop. While the condition is true, the loop runs. When the condition ceases to be `true`, the program calls `break`, stopping the loop. It’s possible to implement behavior like this using a combination of `loop, if, else`, and break; you could try that now in a program, if you’d like. However, this pattern is so common that Rust has a built-in language construct for it, called a `while` loop. Below, we use while to loop the program three times, counting down each time, and then, after the loop, to print a message and exit.
+
+```rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{number}!");
+
+        number -= 1;
+    }
+
+    println!("LIFTOFF!!!");
+}
+```
+
+This construct eliminates a lot of nesting that would be necessary if you used `loop, if, else, and break`, and it’s clearer. While a condition evaluates to true, the code runs; otherwise, it exits the loop.
+
 ## Looping Through a Collection with for
+
+You can also use the while construct to loop over the elements of a collection, such as an array. For example, the loop below prints each element in the array a.
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+    let mut index = 0;
+
+    while index < 5 {
+        println!("the value is: {}", a[index]);
+
+        index += 1;
+    }
+}
+```
+
+However, this approach is `error-prone`; we could cause the program to panic if the index value or test condition is incorrect. For example, if you changed the definition of the a array to have four elements but forgot to update the condition to while index < 4, the code would `panic`. It’s also slow, because the compiler adds runtime code to perform the conditional check of whether the index is within the bounds of the array on every iteration through the loop.
+
+As a more concise alternative, you can use a `for` loop and execute some code for each item in a `collection`.
+
+```rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a {
+        println!("the value is: {element}");
+    }
+}
+```
+
+The safety and conciseness of `for` loops make them the `most commonly` used loop construct in Rust. Even in situations in which you want to run some code a certain `number of times`, as in the countdown example that used a while loop in Listing 3-3, most Rustaceans would use a `for` loop. The way to do that would be to use a **`Range`**, provided by the standard library, which generates all numbers in sequence starting from one number and ending before another number.
+
+Here’s what the `countdown` would look like using a `for` loop and another method we’ve not yet talked about, `rev`, to reverse the range:
+
+```rust
+fn main() {
+    for number in (1..4).rev() {
+        println!("{number}!");
+    }
+    println!("LIFTOFF!!!");
+}
+```
 
 ## Summary
 
