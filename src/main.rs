@@ -213,3 +213,92 @@
 //     product.read_product_name();
 //     product.increase_available_qty(10);
 // }
+
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// impl Product {
+//     fn new(name: String, quantity: i32) -> Self {
+//         Self {
+//             name,
+//             available_quantity: quantity,
+//         }
+//     }
+//     /// `inspect_product(product: &Product)`
+//     /// → only reads
+//     fn inspect_product(&self) {
+//         println!("I have read product name as: {}", self.name);
+//     }
+//     /// `modify_product(product: &mut Product)`
+//     /// → changes available quantity
+//     fn modify_product(&mut self, increment: i32) {
+//         println!("Quantity available before: {}", self.available_quantity);
+//         self.available_quantity += increment;
+//         println!("Quantity available after: {}", self.available_quantity);
+//     }
+//     /// `consume_product(product: Product)`
+//     /// → takes ownership
+//     fn consume_product(self) {
+//         println!("I have snatcheed ownership of product: {}", self.name);
+//     }
+// }
+// fn main() {
+//     let mut product = Product::new(String::from("Mechanical Keyboard"), 90);
+//     product.inspect_product();
+//     println!("name: {}, qty:{}", product.name, product.available_quantity);
+//     product.modify_product(10);
+//     println!("name: {}, qty:{}", product.name, product.available_quantity);
+//     // product.consume_product();
+//     // println!("name: {}, qty:{}", product.name, product.available_quantity);
+// }
+
+struct Product {
+    name: String,
+    available_quantity: i32,
+}
+fn new(name: String, quantity: i32) -> Product {
+    Product {
+        name,
+        available_quantity: quantity,
+    }
+}
+fn inspect_product(product: &Product) {
+    println!("in inspect_product; name as: {}", product.name);
+}
+fn modify_product(product: &mut Product, increment: i32) {
+    println!(
+        "in modify_product; pre-increment: {}",
+        product.available_quantity
+    );
+    product.available_quantity += increment;
+    println!(
+        "in modify_product; post-increment: {}",
+        product.available_quantity
+    );
+}
+fn consume_product(product: Product) -> Product {
+    println!(
+        "in consume_product; ownership has moved here from main for: {}. Returning now.",
+        product.name
+    );
+    product
+}
+fn main() {
+    let mut product = new(String::from("Mechanical Keyboard"), 90);
+    inspect_product(&product);
+    println!(
+        "in main; name: {}, qty:{}",
+        product.name, product.available_quantity
+    );
+    modify_product(&mut product, 10);
+    println!(
+        "in main; name: {}, qty:{}",
+        product.name, product.available_quantity
+    );
+    product = consume_product(product);
+    println!(
+        "in main; name: {}, qty:{}",
+        product.name, product.available_quantity
+    );
+}
