@@ -253,52 +253,209 @@
 //     // println!("name: {}, qty:{}", product.name, product.available_quantity);
 // }
 
-struct Product {
-    name: String,
-    available_quantity: i32,
-}
-fn new(name: String, quantity: i32) -> Product {
-    Product {
-        name,
-        available_quantity: quantity,
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// fn new(name: String, quantity: i32) -> Product {
+//     Product {
+//         name,
+//         available_quantity: quantity,
+//     }
+// }
+// fn inspect_product(product: &Product) {
+//     println!("in inspect_product; name as: {}", product.name);
+// }
+// fn modify_product(product: &mut Product, increment: i32) {
+//     println!(
+//         "in modify_product; pre-increment: {}",
+//         product.available_quantity
+//     );
+//     product.available_quantity += increment;
+//     println!(
+//         "in modify_product; post-increment: {}",
+//         product.available_quantity
+//     );
+// }
+// fn consume_product(product: Product) -> Product {
+//     println!(
+//         "in consume_product; ownership has moved here from main for: {}. Returning now.",
+//         product.name
+//     );
+//     product
+// }
+// fn main() {
+//     let mut product = new(String::from("Mechanical Keyboard"), 90);
+//     inspect_product(&product);
+//     println!(
+//         "in main; name: {}, qty:{}",
+//         product.name, product.available_quantity
+//     );
+//     modify_product(&mut product, 10);
+//     println!(
+//         "in main; name: {}, qty:{}",
+//         product.name, product.available_quantity
+//     );
+//     product = consume_product(product);
+//     println!(
+//         "in main; name: {}, qty:{}",
+//         product.name, product.available_quantity
+//     );
+// }
+
+// // Enums and matching
+// enum ReservationError {
+//     ProductNotFound,
+//     InvalidQuantity,
+//     InsufficientInventory { available: i32, requested: i32 }, // Rust enums can also carry data
+// }
+
+// fn describe_error(error: &ReservationError) {
+//     match error {
+//         &ReservationError::ProductNotFound => {
+//             println!("Product was not found");
+//         }
+//         &ReservationError::InvalidQuantity => {
+//             println!("Quantity must be > 0");
+//         }
+//         &ReservationError::InsufficientInventory {
+//             available,
+//             requested,
+//         } => {
+//             println!("Available: {} < Requested: {}", available, requested);
+//         }
+//     }
+// }
+
+// fn main() {
+//     // Creating enum values; Notice the syntax `EnumName::Variant``
+//     let mut error = ReservationError::ProductNotFound;
+//     describe_error(&error);
+//     error = ReservationError::InvalidQuantity;
+//     describe_error(&error);
+//     error = ReservationError::InsufficientInventory {
+//         available: 10,
+//         requested: 20,
+//     };
+//     describe_error(&error);
+// }
+
+// // Result<T, E>
+// // This operation either succeeds with i32 or fails with a String message displayed
+// fn divide(a: i32, b: i32) -> Result<i32, String> {
+//     if b == 0 {
+//         return Err(String::from("Division by 0 not allowed"));
+//     } else {
+//         return Ok(a / b);
+//     }
+// }
+// fn print_result(result: &Result<i32, String>) {
+//     match result {
+//         Ok(quotient) => {
+//             println!("Result is: {}", quotient)
+//         }
+
+//         Err(msg) => {
+//             println!("{}", msg)
+//         }
+//     }
+// }
+// fn main() {
+//     // Result variant: Ok(value)
+//     let mut result = divide(10, 2);
+//     print_result(&result);
+//     // Result variant: Err(error)
+//     result = divide(10, 0);
+//     print_result(&result);
+//     // Result variant: Ok(value)
+//     result = divide(20, 4);
+//     print_result(&result);
+// }
+
+// // Ok(value) & Err(error) exercise with Result<T, E>
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// impl Product {
+//     fn new(name: String, quantity: i32) -> Self {
+//         Self {
+//             name,
+//             available_quantity: quantity,
+//         }
+//     }
+//     fn try_reserve(&mut self, quantity: i32) -> Result<(), ReservationError> {
+//         if quantity <= 0 {
+//             return Err(ReservationError::InvalidQuantity);
+//         }
+
+//         if quantity > self.available_quantity {
+//             return Err(ReservationError::InsufficientInventory {
+//                 available: self.available_quantity,
+//                 requested: quantity,
+//             });
+//         }
+
+//         self.available_quantity -= quantity;
+//         Ok(())
+//     }
+// }
+// enum ReservationError {
+//     InvalidQuantity,
+//     InsufficientInventory { available: i32, requested: i32 },
+// }
+// fn reservation_check(result: &Result<(), ReservationError>) {
+//     match result {
+//         Ok(()) => {
+//             println!("Reservation succeeded")
+//         }
+//         Err(ReservationError::InvalidQuantity) => {
+//             println!("Reservation failed: invalid qty")
+//         }
+//         Err(ReservationError::InsufficientInventory {
+//             available,
+//             requested,
+//         }) => {
+//             println!(
+//                 "Reservation failed: Available:{} < Requested: {}",
+//                 available, requested
+//             )
+//         }
+//     }
+// }
+// fn main() {
+//     let mut product = Product::new(String::from("Mechanical Keyboard"), 90);
+//     let mut reservation_result = product.try_reserve(3);
+//     reservation_check(&reservation_result);
+//     reservation_result = product.try_reserve(0);
+//     reservation_check(&reservation_result);
+//     reservation_result = product.try_reserve(100);
+//     reservation_check(&reservation_result);
+// }
+
+fn divide(a: i32, b: i32) -> Result<i32, String> {
+    if b == 0 {
+        return Err(String::from("Division by 0 not allowed"));
+    } else {
+        return Ok(a / b);
     }
 }
-fn inspect_product(product: &Product) {
-    println!("in inspect_product; name as: {}", product.name);
+fn calculate(a: i32, b: i32) -> Result<i32, String> {
+    let division_output = divide(a, b)?;
+    Ok(division_output + 10)
 }
-fn modify_product(product: &mut Product, increment: i32) {
-    println!(
-        "in modify_product; pre-increment: {}",
-        product.available_quantity
-    );
-    product.available_quantity += increment;
-    println!(
-        "in modify_product; post-increment: {}",
-        product.available_quantity
-    );
-}
-fn consume_product(product: Product) -> Product {
-    println!(
-        "in consume_product; ownership has moved here from main for: {}. Returning now.",
-        product.name
-    );
-    product
+fn print_result(result: Result<i32, String>) {
+    match result {
+        Ok(value) => {
+            println!("Result is: {}", value)
+        }
+
+        Err(msg) => {
+            println!("{}", msg)
+        }
+    }
 }
 fn main() {
-    let mut product = new(String::from("Mechanical Keyboard"), 90);
-    inspect_product(&product);
-    println!(
-        "in main; name: {}, qty:{}",
-        product.name, product.available_quantity
-    );
-    modify_product(&mut product, 10);
-    println!(
-        "in main; name: {}, qty:{}",
-        product.name, product.available_quantity
-    );
-    product = consume_product(product);
-    println!(
-        "in main; name: {}, qty:{}",
-        product.name, product.available_quantity
-    );
+    print_result(calculate(20, 2));
+    print_result(calculate(20, 0));
 }
