@@ -462,27 +462,88 @@
 //     print_result(calculate(20, 0));
 // }
 
-// Option<T> means: I either have a value or I don't.
-// It has two variants:
-// Some(value)
-// None
-fn find_product(id: i32) -> Option<String> {
-    if id == 1 {
-        return Some(String::from("Mechanical Keyboard"));
-    }
-    None
-}
-fn product_search_result(option: &Option<String>) {
-    match option {
-        Some(product_name) => {
-            println!("Found product: {}", product_name)
-        }
-        None => {
-            println!("Product not found")
-        }
-    }
+// // Option<T> means: I either have a value or I don't.
+// // It has two variants:
+// // Some(value)
+// // None
+// fn find_product(id: i32) -> Option<String> {
+//     if id == 1 {
+//         return Some(String::from("Mechanical Keyboard"));
+//     }
+//     None
+// }
+// fn product_search_result(option: &Option<String>) {
+//     match option {
+//         Some(product_name) => {
+//             println!("Found product: {}", product_name)
+//         }
+//         None => {
+//             println!("Product not found")
+//         }
+//     }
+// }
+// fn main() {
+//     product_search_result(&find_product(1));
+//     product_search_result(&find_product(99));
+// }
+
+// // One last Option concept: `if let``
+// // You don't always need a full `match``.
+// // If you only care about one variant:
+// if let Some(product) = find_product(1) {
+//     println!("Found: {}", product);
+// }
+// // This means:
+// // If the value is Some, give me the contained value and execute this block.
+// // You can also handle None:
+// if let Some(product) = find_product(1) {
+//     println!("Found: {}", product);
+// } else {
+//     println!("Not found");
+// }
+
+// fn print_product(product: Option<String>) {
+//     if let Some(product_name) = product {
+//         println!("Product: {}", product_name);
+//     }
+//     //None handled
+// }
+// fn main() {
+//     print_product(Some(String::from("Laptop")));
+//     print_product(None);
+// }
+
+// // `unwrap_or``
+// // Use it when you want a default value if Option is None.
+// fn main() {
+//     // //Some
+//     // let product = Some(String::from("Laptop"));
+//     // let name = product.unwrap_or(String::from("Unknown"));
+//     // println!("{}", name); // Laptop
+
+//     //None
+//     let product: Option<String> = None;
+//     let name = product.unwrap_or(String::from("Unknown"));
+//     println!("{}", name); // Unknown
+// }
+
+// fn main() {
+//     // `map` lets you transform the value inside an `Option` without manually `matching` it.
+//     let product = Some(String::from("Laptop")); // Some(String)
+//     let length = product.map(|name| name.len()); //map
+//     println!("{:?}", length); // Result:Some(6)
+//     // If the original value is None:
+//     let product: Option<String> = None;
+//     let length = product.map(|name| name.len());
+//     println!("{:?}", length); // Result:None
+// }
+
+fn get_product_name(product: Option<String>) -> String {
+    product
+        .map(|name| format!("Product: {}", name))
+        .unwrap_or(String::from("Product: Unknown"))
 }
 fn main() {
-    product_search_result(&find_product(1));
-    product_search_result(&find_product(99));
+    println!("{}", get_product_name(Some(String::from("Laptop"))));
+    println!("{}", get_product_name(None));
 }
