@@ -433,29 +433,56 @@
 //     reservation_check(&reservation_result);
 // }
 
-fn divide(a: i32, b: i32) -> Result<i32, String> {
-    if b == 0 {
-        return Err(String::from("Division by 0 not allowed"));
-    } else {
-        return Ok(a / b);
-    }
-}
-fn calculate(a: i32, b: i32) -> Result<i32, String> {
-    let division_output = divide(a, b)?;
-    Ok(division_output + 10)
-}
-fn print_result(result: Result<i32, String>) {
-    match result {
-        Ok(value) => {
-            println!("Result is: {}", value)
-        }
+// // ? means roughly:
+// // If the operation succeeded, give me its value. If it failed, immediately return that error from my current function.
+// fn divide(a: i32, b: i32) -> Result<i32, String> {
+//     if b == 0 {
+//         return Err(String::from("Division by 0 not allowed"));
+//     } else {
+//         return Ok(a / b);
+//     }
+// }
+// fn calculate(a: i32, b: i32) -> Result<i32, String> {
+//     let division_output = divide(a, b)?;
+//     Ok(division_output + 10)
+// }
+// fn print_result(result: Result<i32, String>) {
+//     match result {
+//         Ok(value) => {
+//             println!("Result is: {}", value)
+//         }
 
-        Err(msg) => {
-            println!("{}", msg)
+//         Err(msg) => {
+//             println!("{}", msg)
+//         }
+//     }
+// }
+// fn main() {
+//     print_result(calculate(20, 2));
+//     print_result(calculate(20, 0));
+// }
+
+// Option<T> means: I either have a value or I don't.
+// It has two variants:
+// Some(value)
+// None
+fn find_product(id: i32) -> Option<String> {
+    if id == 1 {
+        return Some(String::from("Mechanical Keyboard"));
+    }
+    None
+}
+fn product_search_result(option: &Option<String>) {
+    match option {
+        Some(product_name) => {
+            println!("Found product: {}", product_name)
+        }
+        None => {
+            println!("Product not found")
         }
     }
 }
 fn main() {
-    print_result(calculate(20, 2));
-    print_result(calculate(20, 0));
+    product_search_result(&find_product(1));
+    product_search_result(&find_product(99));
 }
