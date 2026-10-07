@@ -538,12 +538,27 @@
 //     println!("{:?}", length); // Result:None
 // }
 
-fn get_product_name(product: Option<String>) -> String {
-    product
-        .map(|name| format!("Product: {}", name))
-        .unwrap_or(String::from("Product: Unknown"))
-}
+// fn get_product_name(product: Option<String>) -> String {
+//     product
+//         .map(|name| format!("Product: {}", name))
+//         .unwrap_or(String::from("Product: Unknown"))
+// }
+// fn main() {
+//     println!("{}", get_product_name(Some(String::from("Laptop"))));
+//     println!("{}", get_product_name(None));
+// }
+
+use core::num;
+
+// A Vec<T> is Rust's growable array.
 fn main() {
-    println!("{}", get_product_name(Some(String::from("Laptop"))));
-    println!("{}", get_product_name(None));
+    let mut numbers: Vec<i32> = Vec::new();
+    numbers.push(10);
+    numbers.push(20);
+    numbers.push(30);
+
+    let numbers = vec![10, 20, 30];
+    println!("{}", numbers[0]);
+    let zeroth = numbers.get(0);
+    println!("{}", zeroth);
 }
