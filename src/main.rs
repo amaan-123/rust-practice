@@ -548,17 +548,159 @@
 //     println!("{}", get_product_name(None));
 // }
 
-use core::num;
+// // A Vec<T> is Rust's growable array.
+// fn main() {
+//     // let mut numbers: Vec<i32> = Vec::new();
+//     // numbers.push(10);
+//     // numbers.push(20);
+//     // numbers.push(30);
 
-// A Vec<T> is Rust's growable array.
-fn main() {
-    let mut numbers: Vec<i32> = Vec::new();
-    numbers.push(10);
-    numbers.push(20);
-    numbers.push(30);
+//     let numbers = vec![10, 20, 30];
+//     println!("{}", numbers[0]);
+//     let zeroth = numbers.get(0);
+//     println!("{:?}", zeroth);
+//     match numbers.get(0) {
+//         Some(value) => println!("{}", value),
+//         None => println!("No element"),
+//     }
+// }
 
-    let numbers = vec![10, 20, 30];
-    println!("{}", numbers[0]);
-    let zeroth = numbers.get(0);
-    println!("{}", zeroth);
-}
+// // Iterating with for
+// fn main() {
+//     let products = vec![
+//         String::from("Laptop"),
+//         String::from("Phone"),
+//         String::from("Tablet"),
+//     ];
+
+//     // // moves the elements out of products.
+//     // // So you cannot subsequently use products.
+//     // for product in products {
+//     //     println!("{}", product);
+//     // }
+
+//     // to borrow instead, use &products
+//     for product in &products {
+//         println!("{}", product);
+//     }
+//     println!("{:?}", products);
+// }
+
+// // `.iter()`
+// // This is another way of borrowing the elements:
+// fn main() {
+//     let products = vec![
+//         String::from("Laptop"),
+//         String::from("Phone"),
+//         String::from("Tablet"),
+//     ];
+//     for product in products.iter() {
+//         println!("{}", product);
+//     }
+// }
+
+// fn main() {
+//     let products = vec![
+//         String::from("Laptop"),
+//         String::from("Phone"),
+//         String::from("Tablet"),
+//     ];
+//     // Print every product using .iter()
+//     for product in products.iter() {
+//         println!("{}", product)
+//     }
+//     // Print the number of products
+//     println!("{}", products.len())
+// }
+
+// // Modifying a Vec
+// fn main() {
+//     let mut products = vec![String::from("Laptop"), String::from("Phone")];
+//     products.push(String::from("Tablet"));
+
+//     let removed = products.pop();
+//     match removed {
+//         Some(product) => println!("Removed: {}", product),
+//         None => println!("Nothing to remove"),
+//     }
+// }
+
+// // HashMap<K, V>
+// use std::collections::HashMap;
+// fn main() {
+//     let mut products = HashMap::new();
+//     products.insert(1, String::from("Laptop"));
+//     products.insert(2, String::from("Phone"));
+
+//     //Lookup
+//     if let Some(product) = products.get(&1) {
+//         println!("{}", product);
+//     }
+// }
+
+// use std::collections::HashMap;
+// fn main() {
+//     let mut products: HashMap<i32, String> = HashMap::new();
+//     products.insert(1, String::from("Laptop"));
+//     products.insert(2, String::from("Phone"));
+//     products.insert(3, String::from("Tablet"));
+
+//     lookup_product(&products, 2);
+//     lookup_product(&products, 99);
+// }
+// fn lookup_product(products: &HashMap<i32, String>, key: i32) {
+//     if let Some(product) = products.get(&key) {
+//         println!("{}", product);
+//     } else {
+//         println!("Product not found");
+//     }
+// }
+
+// // Iterator pipeline
+// fn main() {
+//     let numbers = vec![1, 2, 3, 4, 5, 6];
+//     let even_numbers: Vec<i32> = numbers
+//         .iter()
+//         .filter(|number| **number % 2 == 0)
+//         .copied()
+//         .collect();
+//     // That's a little more syntax than we need right now because .iter() gives references.
+//     // Let's use strings instead:
+//     let products = vec![
+//         String::from("Laptop"),
+//         String::from("Phone"),
+//         String::from("Tablet"),
+//     ];
+//     let long_names: Vec<&String> = products
+//         .iter()
+//         .filter(|product| product.len() > 5)
+//         .collect();
+// }
+
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// fn main() {
+//     let products = vec![
+//         Product {
+//             name: String::from("Laptop"),
+//             available_quantity: 5,
+//         },
+//         Product {
+//             name: String::from("Phone"),
+//             available_quantity: 0,
+//         },
+//         Product {
+//             name: String::from("Tablet"),
+//             available_quantity: 3,
+//         },
+//     ];
+
+//     let available_products: Vec<&String> = products
+//         .iter()
+//         .filter(|product| product.available_quantity > 0)
+//         .map(|product| &product.name)
+//         .collect();
+//     println!("{:?}", available_products)
+// }
