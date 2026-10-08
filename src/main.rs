@@ -704,3 +704,99 @@
 //         .collect();
 //     println!("{:?}", available_products)
 // }
+
+// Trait - rough like C# interface
+// trait Printable {
+//     fn print(&self);
+// }
+// struct Product {
+//     name: String,
+// }
+// struct Reservation {
+//     id: i32,
+// }
+// impl Printable for Product {
+//     fn print(&self) {
+//         println!("Product: {}", self.name);
+//     }
+// }
+// impl Printable for Reservation {
+//     fn print(&self) {
+//         println!("Reservation: {}", self.id);
+//     }
+// }
+
+// // Think of `derive` as:
+// // Rust, generate the standard implementation of this trait for me.
+// #[derive(Debug, Clone)]
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// fn main() {
+//     let product = Product {
+//         name: String::from("Keyboard"),
+//         available_quantity: 20,
+//     };
+//     println!("{:?}", product); // Without Debug trait, this wouldn't work.
+//     let another_product = product.clone(); // Without Clone trait, this wouldn't work.
+//     println!("{:?}", another_product);
+// }
+
+// trait Printable {
+//     fn print(&self);
+// }
+// // #[derive(Debug)]
+// struct Product {
+//     name: String,
+//     available_quantity: i32,
+// }
+// impl Product {
+//     fn new(product_name: String, qty: i32) -> Self {
+//         Self {
+//             name: product_name,
+//             available_quantity: qty,
+//         }
+//     }
+// }
+// impl Printable for Product {
+//     fn print(&self) {
+//         println!("{}", self.name)
+//         // println!("{:?}", self)
+//     }
+// }
+// fn main() {
+//     let product = Product::new(String::from("Keyboard"), 90);
+//     product.print();
+// }
+
+// // Rust struct <--> JSON
+// // The library we'll use is Serde.
+// // Serialize is   : Rust → JSON
+// // Deserialize is : JSON → Rust
+use serde::{Deserialize, Serialize};
+#[derive(Debug, Serialize, Deserialize)]
+struct Product {
+    name: String,
+    #[serde(rename = "availableQuantity")]
+    available_quantity: i32,
+}
+fn main() {
+    let product = Product {
+        name: String::from("Laptop"),
+        available_quantity: 10,
+    };
+
+    // Because converting to/from JSON can fail (e.g., malformed JSON, mismatched types), Serde functions return a `Result`.
+    // In the actual service's recoverable request paths, we'll handle `Result` properly, consistent with the assignment requirements.
+
+    // "serialize"
+    // unwrap() is acceptable as a quick learning/example shortcut.
+    let json = serde_json::to_string(&product).unwrap();
+    println!("{}", json);
+
+    // "deserialize"
+    let json = r#"{"name":"Phone","availableQuantity":20}"#;
+    let product: Product = serde_json::from_str(json).unwrap();
+    println!("{:?}", product);
+}
