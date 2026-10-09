@@ -809,14 +809,117 @@
 //     println!("{}", product.name);
 // }
 
-// calling an async Rust function produces a `Future`. It doesn't execute the function to completion by itself.
-// You need an asynchronous runtime, such as Tokio, to execute the future.
-#[tokio::main]
-async fn main() {
-    let product = get_product().await;
-    println!("{}", product);
+// Module 7: Error Design
+// // Here is a practical example showing how a database unique constraint violation becomes a domain error:
+// // 1. Your domain errors
+// #[derive(Debug)]
+// pub enum ReservationError {
+//     DuplicateRequest,
+//     DatabaseFailure,
+// }
+
+// // 2. A mocked database error (representing sqlx::Error)
+// pub enum DbError {
+//     UniqueConstraintViolation,
+//     ConnectionFailed,
+// }
+
+// // 3. The Translation Logic
+// // This tells Rust exactly how to convert DbError into ReservationError
+// impl From<DbError> for ReservationError {
+//     fn from(error: DbError) -> Self {
+//         match error {
+//             // Map the specific DB constraint error to our domain idempotency error
+//             DbError::UniqueConstraintViolation => ReservationError::DuplicateRequest,
+//             // Fallback for general database crashes
+//             _ => ReservationError::DatabaseFailure,
+//         }
+//     }
+// }
+
+// // 4. The automatic conversion in action
+// fn insert_reservation(request_id: &str) -> Result<(), ReservationError> {
+//     // Simulating a database call that fails because the request_id already exists
+//     let db_result: Result<(), DbError> = Err(DbError::UniqueConstraintViolation);
+
+//     // The '?' operator sees a DbError. It checks if a `From` implementation exists,
+//     // automatically translates it into ReservationError::DuplicateRequest,
+//     // and returns it up the chain to your HTTP handler.
+//     db_result?;
+
+//     Ok(())
+// }
+
+// // Module 8: Async + Tokio
+// // calling an async Rust function produces a `Future`. It doesn't execute the function to completion by itself.
+// // You need an asynchronous runtime, such as Tokio, to execute the future.
+// #[tokio::main]
+// async fn main() {
+//     let product = get_product().await;
+//     println!("{}", product);
+// }
+
+// async fn get_product() -> String {
+//     String::from("Laptop")
+// }
+
+// // Module 8: structure concurrent tasks and propagate their errors:
+// // 1. Error Propagation with ?
+// // This simulates a database transaction that might fail
+// async fn process_ticket(ticket_id: i32) -> Result<String, &'static str> {
+//     // If some_db_call().await? fails, it immediately returns the error here.
+//     if ticket_id % 2 == 0 {
+//         Ok(format!("Ticket {} saved", ticket_id))
+//     } else {
+//         Err("Constraint violation")
+//     }
+// }
+
+// #[tokio::main]
+// async fn main() {
+//     // 2. tokio::spawn (Firing concurrent tasks)
+//     // We instantly fire off two background tasks. They run simultaneously.
+//     let task_1 = tokio::spawn(async move {
+//         // The task awaits the DB call and returns the Result
+//         process_ticket(1).await
+//     });
+
+//     let task_2 = tokio::spawn(async move {
+//         process_ticket(2).await
+//     });
+
+//     // 3. tokio::join! (Waiting for concurrent execution)
+//     // The main thread pauses here until both tasks are completely finished.
+//     let (result_1, result_2) = tokio::join!(task_1, task_2);
+
+//     // Because Tokio tasks themselves can crash (panic), the result is wrapped
+//     // in a JoinError. We unwrap the task result, then look at our domain Result.
+//     println!("Task 1: {:?}", result_1.unwrap()); // Err("Constraint violation")
+//     println!("Task 2: {:?}", result_2.unwrap()); // Ok("Ticket 2 saved")
+// }
+
+// // *Note on loops: `tokio::join!` requires you to name every single task explicitly. For dynamic concurrency (like firing a loop of 20 identical requests for the assignment test), you would push the `tokio::spawn` handles into a `Vec` and wait for all of them using `futures::future::join_all(handles).await`.*
+
+// Module 10 — Three practical points for Serde + JSON
+// 1. Use separate request and response types
+// For example: Notice that the server generates the ID; the client doesn't supply it.
+use serde::Deserialize;
+#[derive(Deserialize)]
+struct CreateProductRequest {
+    name: String,
+    available_quantity: i32,
 }
 
-async fn get_product() -> String {
-    String::from("Laptop")
+use serde::Serialize;
+#[derive(Serialize)]
+struct ProductResponse {
+    id: i64,
+    name: String,
+    available_quantity: i32,
+}
+
+fn main() {
+    // 2. Deserialization can fail
+    let json = r#"{"name":"Laptop","available_quantity":"ten"}"#;
+    let result: Result<CreateProductRequest, serde_json::Error> = serde_json::from_str(json);
 }
