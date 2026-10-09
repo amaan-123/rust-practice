@@ -801,10 +801,22 @@
 //     println!("{:?}", product);
 // }
 
-// Module 6 — Modules, `use`, `pub` & Project Structure
-mod products;
-use products::{create_product, Product};
-fn main() {
-    let product: Product = create_product(String::from("Laptop"));
-    println!("{}", product.name);
+// // Module 6 — Modules, `use`, `pub` & Project Structure
+// mod products;
+// use products::{create_product, Product};
+// fn main() {
+//     let product: Product = create_product(String::from("Laptop"));
+//     println!("{}", product.name);
+// }
+
+// calling an async Rust function produces a `Future`. It doesn't execute the function to completion by itself.
+// You need an asynchronous runtime, such as Tokio, to execute the future.
+#[tokio::main]
+async fn main() {
+    let product = get_product().await;
+    println!("{}", product);
+}
+
+async fn get_product() -> String {
+    String::from("Laptop")
 }
