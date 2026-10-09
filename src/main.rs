@@ -774,29 +774,37 @@
 // // The library we'll use is Serde.
 // // Serialize is   : Rust → JSON
 // // Deserialize is : JSON → Rust
-use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize)]
-struct Product {
-    name: String,
-    #[serde(rename = "availableQuantity")]
-    available_quantity: i32,
-}
+// use serde::{Deserialize, Serialize};
+// #[derive(Debug, Serialize, Deserialize)]
+// struct Product {
+//     name: String,
+//     #[serde(rename = "availableQuantity")]
+//     available_quantity: i32,
+// }
+// fn main() {
+//     let product = Product {
+//         name: String::from("Laptop"),
+//         available_quantity: 10,
+//     };
+
+//     // Because converting to/from JSON can fail (e.g., malformed JSON, mismatched types), Serde functions return a `Result`.
+//     // In the actual service's recoverable request paths, we'll handle `Result` properly, consistent with the assignment requirements.
+
+//     // "serialize"
+//     // unwrap() is acceptable as a quick learning/example shortcut.
+//     let json = serde_json::to_string(&product).unwrap();
+//     println!("{}", json);
+
+//     // "deserialize"
+//     let json = r#"{"name":"Phone","availableQuantity":20}"#;
+//     let product: Product = serde_json::from_str(json).unwrap();
+//     println!("{:?}", product);
+// }
+
+// Module 6 — Modules, `use`, `pub` & Project Structure
+mod products;
+use products::{create_product, Product};
 fn main() {
-    let product = Product {
-        name: String::from("Laptop"),
-        available_quantity: 10,
-    };
-
-    // Because converting to/from JSON can fail (e.g., malformed JSON, mismatched types), Serde functions return a `Result`.
-    // In the actual service's recoverable request paths, we'll handle `Result` properly, consistent with the assignment requirements.
-
-    // "serialize"
-    // unwrap() is acceptable as a quick learning/example shortcut.
-    let json = serde_json::to_string(&product).unwrap();
-    println!("{}", json);
-
-    // "deserialize"
-    let json = r#"{"name":"Phone","availableQuantity":20}"#;
-    let product: Product = serde_json::from_str(json).unwrap();
-    println!("{:?}", product);
+    let product: Product = create_product(String::from("Laptop"));
+    println!("{}", product.name);
 }
