@@ -1,24 +1,47 @@
 // Even if you aren't actively calling the previous learning modules 1-10 code in your new `main()` function, keeping the `mod earlier_practice;` declaration at the top of the file is highly recommended. It ensures `cargo check` will continue analyzing your previous code, keeping it valid as you update Rust versions or learn new things.
 mod earlier_practice;
-use axum::{Json, Router, routing::get};
-use serde::Serialize;
 
-#[derive(Serialize)]
-struct HealthResponse {
-    status: String,
+use axum::{
+    Json, Router,
+    http::StatusCode,
+    routing::{get, post},
+};
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+struct CreateProductRequest {
+    name: String,
+    available_quantity: i32,
 }
 
-// This `handler` returns JSON. Axum converts the response struct into a JSON response because it implements Serialize.
-async fn health_check() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: String::from("ok"), //hard-coded; eventually use application logic and PostgreSQL
-    })
+#[derive(Serialize)]
+struct ProductResponse {
+    id: i64,
+    name: String,
+    available_quantity: i32,
+}
+
+async fn create_product(
+    Json(request): Json<CreateProductRequest>,
+) -> (StatusCode, Json<ProductResponse>) {
+    let product = ProductResponse {
+        id: 1, // One deliberate limitation: Every request currently returns ID 1, and nothing is persisted. We'll replace this behavior with database-backed logic.
+        name: request.name, // The String moves from the request into the response struct. We don't need to clone it.
+        available_quantity: request.available_quantity,
+    };
+
+    (StatusCode::CREATED, Json(product))
+}
+
+async fn health_check() -> &'static str {
+    "OK"
 }
 
 #[tokio::main]
 async fn main() {
-    // Route registration: A `GET /health` request invokes `health_check.
-    let app = Router::new().route("/health", get(health_check));
+    let app = Router::new()
+        .route("/health", get(health_check))
+        .route("/products", post(create_product));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
@@ -26,8 +49,5 @@ async fn main() {
 
     println!("Server running at http://127.0.0.1:3000");
 
-    // Start the server:
-    // This serves incoming HTTP requests using Tokio.
     axum::serve(listener, app).await.expect("server failed");
-    // The expect() calls above are for server startup failures, not routine client-request processing. Later, we'll improve error handling where appropriate.
 }
