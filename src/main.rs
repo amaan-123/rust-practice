@@ -1,12 +1,17 @@
-// Even if you aren't actively calling the previous learning modules 1-10 code in your new `main()` function, keeping the `mod earlier_practice;` declaration at the top of the file is highly recommended. It ensures `cargo check` will continue analyzing your previous code, keeping it valid as you update Rust versions or learn new things.
-mod earlier_practice;
-
 use axum::{
     Json, Router,
+    extract::{Path, State},
     http::StatusCode,
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::RwLock;
+
+#[derive(Clone)]
+struct AppState {
+    products: Arc<RwLock<HashMap<i64, ProductResponse>>>,
+}
 
 #[derive(Deserialize)]
 struct CreateProductRequest {
@@ -14,7 +19,7 @@ struct CreateProductRequest {
     available_quantity: i32,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct ProductResponse {
     id: i64,
     name: String,
@@ -22,26 +27,46 @@ struct ProductResponse {
 }
 
 async fn create_product(
+    State(state): State<AppState>,
     Json(request): Json<CreateProductRequest>,
 ) -> (StatusCode, Json<ProductResponse>) {
+    let mut products = state.products.write().await;
+
+    let id = products.len() as i64 + 1;
+
     let product = ProductResponse {
-        id: 1, // One deliberate limitation: Every request currently returns ID 1, and nothing is persisted. We'll replace this behavior with database-backed logic.
-        name: request.name, // The String moves from the request into the response struct. We don't need to clone it.
+        id,
+        name: request.name,
         available_quantity: request.available_quantity,
     };
+
+    products.insert(id, product.clone());
 
     (StatusCode::CREATED, Json(product))
 }
 
-async fn health_check() -> &'static str {
-    "OK"
+async fn get_product(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<Json<ProductResponse>, StatusCode> {
+    let products = state.products.read().await;
+
+    match products.get(&id) {
+        Some(product) => Ok(Json(product.clone())),
+        None => Err(StatusCode::NOT_FOUND),
+    }
 }
 
 #[tokio::main]
 async fn main() {
+    let state = AppState {
+        products: Arc::new(RwLock::new(HashMap::new())),
+    };
+
     let app = Router::new()
-        .route("/health", get(health_check))
-        .route("/products", post(create_product));
+        .route("/products", post(create_product))
+        .route("/products/{id}", get(get_product))
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
