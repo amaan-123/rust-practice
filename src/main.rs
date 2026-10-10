@@ -98,23 +98,19 @@ async fn create_reservation(
     }))
 }
 
+mod db;
+
 #[tokio::main]
-async fn main() {
-    let state = AppState {
-        products: Arc::new(RwLock::new(HashMap::new())),
-    };
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
 
-    let app = Router::new()
-        .route("/products", post(create_product))
-        .route("/products/{id}", get(get_product))
-        .route("/products/{id}/reservations", post(create_reservation))
-        .with_state(state);
+    let database_url = std::env::var("DATABASE_URL")?;
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .expect("failed to bind TCP listener");
+    let pool = db::connect(&database_url).await?;
 
-    println!("Server running at http://127.0.0.1:3000");
+    db::run_migrations(&pool).await?;
 
-    axum::serve(listener, app).await.expect("server failed");
+    println!("Connected to PostgreSQL; migrations completed.");
+
+    Ok(())
 }
