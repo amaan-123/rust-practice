@@ -1,3 +1,7 @@
+mod db;
+mod product_repository;
+mod products;
+
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -98,19 +102,24 @@ async fn create_reservation(
     }))
 }
 
-mod db;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
     let database_url = std::env::var("DATABASE_URL")?;
-
     let pool = db::connect(&database_url).await?;
 
     db::run_migrations(&pool).await?;
 
-    println!("Connected to PostgreSQL; migrations completed.");
+    let product = product_repository::create_product(&pool, "Practice Laptop", 10).await?;
+
+    println!("Created: {:?}", product);
+
+    let found = product_repository::get_product(&pool, product.id).await?;
+    println!("Retrieved: {:?}", found);
+
+    let missing = product_repository::get_product(&pool, -1).await?;
+    println!("Missing ID: {:?}", missing);
 
     Ok(())
 }
