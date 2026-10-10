@@ -8,98 +8,41 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
-use tokio::sync::RwLock;
+use sqlx::PgPool;
+use std::sync::Arc;
 
-#[derive(Clone)]
-struct AppState {
-    products: Arc<RwLock<HashMap<i64, ProductResponse>>>,
-}
+use products::{CreateProductRequest, Product};
 
-#[derive(Deserialize)]
-struct CreateProductRequest {
-    name: String,
-    available_quantity: i32,
-}
-
-#[derive(Clone, Serialize)]
-struct ProductResponse {
-    id: i64,
-    name: String,
-    available_quantity: i32,
-}
-
-#[derive(Deserialize)]
-struct CreateReservationRequest {
-    quantity: i32,
-    request_id: String,
-}
-
-#[derive(Serialize)]
-struct ReservationResponse {
-    product_id: i64,
-    quantity: i32,
-    request_id: String,
-    remaining_quantity: i32,
-}
+type AppState = Arc<PgPool>;
 
 async fn create_product(
-    State(state): State<AppState>,
+    State(pool): State<AppState>,
     Json(request): Json<CreateProductRequest>,
-) -> (StatusCode, Json<ProductResponse>) {
-    let mut products = state.products.write().await;
-
-    let id = products.len() as i64 + 1;
-
-    let product = ProductResponse {
-        id,
-        name: request.name,
-        available_quantity: request.available_quantity,
-    };
-
-    products.insert(id, product.clone());
-
-    (StatusCode::CREATED, Json(product))
-}
-
-async fn get_product(
-    State(state): State<AppState>,
-    Path(id): Path<i64>,
-) -> Result<Json<ProductResponse>, StatusCode> {
-    let products = state.products.read().await;
-
-    match products.get(&id) {
-        Some(product) => Ok(Json(product.clone())),
-        None => Err(StatusCode::NOT_FOUND),
-    }
-}
-
-async fn create_reservation(
-    State(state): State<AppState>,
-    Path(id): Path<i64>,
-    Json(request): Json<CreateReservationRequest>,
-) -> Result<Json<ReservationResponse>, StatusCode> {
-    if request.quantity <= 0 {
+) -> Result<(StatusCode, Json<Product>), StatusCode> {
+    if request.name.trim().is_empty() || request.available_quantity < 0 {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let mut products = state.products.write().await;
+    let product =
+        product_repository::create_product(&pool, &request.name, request.available_quantity)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let product = products.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
+    Ok((StatusCode::CREATED, Json(product)))
+}
 
-    if request.quantity > product.available_quantity {
-        return Err(StatusCode::CONFLICT);
+async fn get_product(
+    State(pool): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Product>, StatusCode> {
+    let product = product_repository::get_product(&pool, id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match product {
+        Some(product) => Ok(Json(product)),
+        None => Err(StatusCode::NOT_FOUND),
     }
-
-    product.available_quantity -= request.quantity;
-
-    Ok(Json(ReservationResponse {
-        product_id: id,
-        quantity: request.quantity,
-        request_id: request.request_id,
-        remaining_quantity: product.available_quantity,
-    }))
 }
 
 #[tokio::main]
@@ -111,15 +54,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     db::run_migrations(&pool).await?;
 
-    let product = product_repository::create_product(&pool, "Practice Laptop", 10).await?;
+    let app = Router::new()
+        .route("/products", post(create_product))
+        .route("/products/{id}", get(get_product))
+        .with_state(Arc::new(pool));
 
-    println!("Created: {:?}", product);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
 
-    let found = product_repository::get_product(&pool, product.id).await?;
-    println!("Retrieved: {:?}", found);
+    println!("Server running at http://127.0.0.1:3000");
 
-    let missing = product_repository::get_product(&pool, -1).await?;
-    println!("Missing ID: {:?}", missing);
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
