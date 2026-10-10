@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: rust-practice-postgres
+    environment:
+      POSTGRES_USER: rustapp
+      POSTGRES_PASSWORD: rustdev
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rustapp -d inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
