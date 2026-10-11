@@ -104,3 +104,82 @@ pub async fn create_reservation(
 
     Ok(reservation)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    async fn test_pool() -> PgPool {
+        dotenvy::dotenv().ok();
+
+        let database_url =
+            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for database tests");
+
+        let pool = PgPool::connect(&database_url)
+            .await
+            .expect("failed to connect to test database");
+
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await
+            .expect("failed to run migrations");
+
+        pool
+    }
+
+    async fn create_test_product(pool: &PgPool, quantity: i32) -> i64 {
+        sqlx::query_scalar::<_, i64>(
+            r#"
+            INSERT INTO products (name, available_quantity)
+            VALUES ('Test product', $1)
+            RETURNING id
+            "#,
+        )
+        .bind(quantity)
+        .fetch_one(pool)
+        .await
+        .expect("failed to create test product")
+    }
+
+    #[tokio::test]
+    async fn reservation_decreases_inventory() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 10).await;
+
+        let result = create_reservation(&pool, product_id, 3, "test-success-005").await;
+
+        assert!(result.is_ok());
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        assert_eq!(remaining, 7);
+    }
+
+    #[tokio::test]
+    async fn insufficient_inventory_does_not_decrease_stock() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 2).await;
+
+        let result = create_reservation(&pool, product_id, 3, "test-insufficient-001").await;
+
+        assert!(matches!(
+            result,
+            Err(ReservationError::InsufficientInventory)
+        ));
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        assert_eq!(remaining, 2);
+    }
+}
