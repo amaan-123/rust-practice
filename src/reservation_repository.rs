@@ -145,6 +145,58 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn zero_quantity_is_rejected() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 10).await;
+        let request_id = format!("zero-{product_id}");
+
+        let result = create_reservation(&pool, product_id, 0, &request_id).await;
+
+        assert!(matches!(result, Err(ReservationError::InvalidQuantity)));
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        assert_eq!(remaining, 10);
+    }
+
+    #[tokio::test]
+    async fn nonexistent_product_is_rejected() {
+        let pool = test_pool().await;
+
+        let result = create_reservation(&pool, -1, 1, "missing-product-test").await;
+
+        assert!(matches!(result, Err(ReservationError::ProductNotFound)));
+    }
+
+    #[tokio::test]
+    async fn reusing_request_id_with_different_quantity_is_rejected() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 10).await;
+        let request_id = format!("conflict-{product_id}");
+
+        let first = create_reservation(&pool, product_id, 2, &request_id).await;
+        assert!(first.is_ok());
+
+        let second = create_reservation(&pool, product_id, 3, &request_id).await;
+
+        assert!(matches!(second, Err(ReservationError::IdempotencyConflict)));
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        assert_eq!(remaining, 8);
+    }
+
+    #[tokio::test]
     async fn reservation_decreases_inventory() {
         let pool = test_pool().await;
         let product_id = create_test_product(&pool, 10).await;
