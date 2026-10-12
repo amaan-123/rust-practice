@@ -10,13 +10,40 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
+use products::{CreateProductRequest, Product};
+use reservations::{CreateReservationRequest, Reservation};
 use sqlx::PgPool;
 use std::sync::Arc;
 
-use products::{CreateProductRequest, Product};
-use reservations::{CreateReservationRequest, Reservation};
-
 type AppState = Arc<PgPool>;
+
+fn build_app(pool: PgPool) -> Router {
+    Router::new()
+        .route("/products", post(create_product))
+        .route("/products/{id}", get(get_product))
+        .route("/products/{id}/reservations", post(create_reservation))
+        .with_state(Arc::new(pool))
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL")?;
+    let pool = db::connect(&database_url).await?;
+
+    db::run_migrations(&pool).await?;
+
+    let app = build_app(pool);
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+
+    println!("Server running at http://127.0.0.1:3000");
+
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
 
 async fn create_product(
     State(pool): State<AppState>,
@@ -74,26 +101,45 @@ async fn create_reservation(
     Ok((StatusCode::CREATED, Json(reservation)))
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenvy::dotenv().ok();
+#[cfg(test)]
+mod api_tests {
+    use super::*;
+    use axum::body::Body;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
 
-    let database_url = std::env::var("DATABASE_URL")?;
-    let pool = db::connect(&database_url).await?;
+    #[tokio::test]
+    async fn create_product_returns_201_and_json() {
+        dotenvy::dotenv().ok();
 
-    db::run_migrations(&pool).await?;
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let app = Router::new()
-        .route("/products", post(create_product))
-        .route("/products/{id}", get(get_product))
-        .route("/products/{id}/reservations", post(create_reservation))
-        .with_state(Arc::new(pool));
+        let pool = db::connect(&database_url)
+            .await
+            .expect("database connection failed");
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+        db::run_migrations(&pool).await.expect("migration failed");
 
-    println!("Server running at http://127.0.0.1:3000");
+        let app = build_app(pool);
 
-    axum::serve(listener, app).await?;
+        let request = axum::http::Request::builder()
+            .method("POST")
+            .uri("/products")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                r#"{"name":"API Test Product","available_quantity":5}"#,
+            ))
+            .unwrap();
 
-    Ok(())
+        let response = app.oneshot(request).await.expect("request failed");
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let json: serde_json::Value = serde_json::from_slice(&body).expect("invalid JSON response");
+
+        assert_eq!(json["name"], "API Test Product");
+        assert_eq!(json["available_quantity"], 5);
+        assert!(json["id"].as_i64().is_some());
+    }
 }

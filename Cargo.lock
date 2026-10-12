@@ -925,10 +925,12 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "dotenvy",
+ "http-body-util",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
+ "tower",
 ]
 
 [[package]]
