@@ -109,6 +109,8 @@ pub async fn create_reservation(
 mod tests {
     use super::*;
     use sqlx::PgPool;
+    use std::sync::Arc;
+    use tokio::{sync::Barrier, task::JoinSet};
 
     async fn test_pool() -> PgPool {
         dotenvy::dotenv().ok();
@@ -146,8 +148,9 @@ mod tests {
     async fn reservation_decreases_inventory() {
         let pool = test_pool().await;
         let product_id = create_test_product(&pool, 10).await;
+        let request_id = format!("test-success-{product_id}");
 
-        let result = create_reservation(&pool, product_id, 3, "test-success-005").await;
+        let result = create_reservation(&pool, product_id, 3, &request_id).await;
 
         assert!(result.is_ok());
 
@@ -165,8 +168,9 @@ mod tests {
     async fn insufficient_inventory_does_not_decrease_stock() {
         let pool = test_pool().await;
         let product_id = create_test_product(&pool, 2).await;
+        let request_id = format!("test-insufficient-{product_id}");
 
-        let result = create_reservation(&pool, product_id, 3, "test-insufficient-001").await;
+        let result = create_reservation(&pool, product_id, 3, &request_id).await;
 
         assert!(matches!(
             result,
@@ -181,5 +185,111 @@ mod tests {
                 .expect("failed to read inventory");
 
         assert_eq!(remaining, 2);
+    }
+
+    #[tokio::test]
+    async fn concurrent_duplicate_requests_reserve_only_once() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 10).await;
+
+        let request_id = format!("duplicate-{product_id}");
+        let barrier = Arc::new(Barrier::new(10));
+        let mut tasks = JoinSet::new();
+
+        for _ in 0..10 {
+            let pool = pool.clone();
+            let request_id = request_id.clone();
+            let barrier = barrier.clone();
+
+            tasks.spawn(async move {
+                barrier.wait().await;
+
+                create_reservation(&pool, product_id, 3, &request_id).await
+            });
+        }
+
+        let mut successes = 0;
+
+        while let Some(result) = tasks.join_next().await {
+            let reservation = result
+                .expect("task panicked")
+                .expect("duplicate request should return the existing reservation");
+
+            assert_eq!(reservation.product_id, product_id);
+            assert_eq!(reservation.quantity, 3);
+            successes += 1;
+        }
+
+        assert_eq!(successes, 10);
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        let reservation_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM reservations WHERE request_id = $1")
+                .bind(&request_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to count reservations");
+
+        assert_eq!(remaining, 7);
+        assert_eq!(reservation_count, 1);
+    }
+
+    #[tokio::test]
+    async fn concurrent_reservations_never_oversell_inventory() {
+        let pool = test_pool().await;
+        let product_id = create_test_product(&pool, 10).await;
+
+        let barrier = Arc::new(Barrier::new(20));
+        let mut tasks = JoinSet::new();
+
+        for i in 0..20 {
+            let pool = pool.clone();
+            let barrier = barrier.clone();
+            let request_id = format!("limited-{product_id}-{i}");
+
+            tasks.spawn(async move {
+                barrier.wait().await;
+
+                create_reservation(&pool, product_id, 1, &request_id).await
+            });
+        }
+
+        let mut successes = 0;
+        let mut insufficient_inventory = 0;
+
+        while let Some(result) = tasks.join_next().await {
+            match result.expect("task panicked") {
+                Ok(_) => successes += 1,
+                Err(ReservationError::InsufficientInventory) => {
+                    insufficient_inventory += 1;
+                }
+                Err(error) => panic!("unexpected reservation error: {error:?}"),
+            }
+        }
+
+        let remaining: i32 =
+            sqlx::query_scalar("SELECT available_quantity FROM products WHERE id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to read inventory");
+
+        let reservation_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM reservations WHERE product_id = $1")
+                .bind(product_id)
+                .fetch_one(&pool)
+                .await
+                .expect("failed to count reservations");
+
+        assert_eq!(successes, 10);
+        assert_eq!(insufficient_inventory, 10);
+        assert_eq!(remaining, 0);
+        assert_eq!(reservation_count, 10);
     }
 }
